@@ -877,9 +877,9 @@ def display_value(value):
         return fig1
     
 
-def retorna_grafico():
+def retorna_grafico(fig):
     tabelaDoGrafico = {' ':[]}
-    fig_selected= fig if grafico_selecionado == 'sub' else fig1
+    fig_selected = fig
     for data in fig_selected['data'][0]['x']:
         tabelaDoGrafico.update({data: []})
     for trace in fig_selected['data']:

@@ -15,7 +15,9 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-
+import dash_table
+import pandas as pd
+df = pd.DataFrame()
 elementos = [
     
     html.H3('Contratos > Anual > Detalhado > MWh', className="titulo", id="titulo-pagina"),
@@ -50,6 +52,8 @@ elementos = [
     html.Div(dcc.Graph(id='grafico') ,id="container-grafico"),
     
     html.Div(id="container-tabela"),
+    
+    dash_table.DataTable(id='tabela',columns=[{"name": i, "id": i} for i in df.columns],page_size=25),
     
     dcc.DatePickerRange(
                         calendar_orientation='vertical',

@@ -47,12 +47,12 @@ df2 = pd.DataFrame() #gf.retorna_grafico()
 
 
 
-@app.callback(Output('output-url', 'children'),
-              Input('url1', 'pathname'))
-def valor_url(pathname):
-    global caminho
-    caminho = pathname
-    return ''
+# @app.callback(Output('output-url', 'children'),
+#               Input('url1', 'pathname'))
+# def valor_url(pathname):
+#     global caminho
+#     caminho = pathname
+#     return ''
 
 @app.callback(
     Output('container-tabela', 'children'),
@@ -80,10 +80,11 @@ def valor_url(pathname):
         Input('checklist-vendedor-valores', 'value'),
         Input('checklist-inicio-suprimento-valores', 'value'),
         Input('checklist-fim-suprimento-valores', 'value'),
-        Input('selecao-grafico', 'value')
+        Input('selecao-grafico', 'value'),
+        Input('url1', 'pathname')
      ]
 )
-def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_date, end_date,tipo_contrato_value,submercado_value,leilao_value,status_value,produto_value,vendedor_value,inicio_suprimento_value,fim_suprimento_value,selecao_value):
+def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_date, end_date,tipo_contrato_value,submercado_value,leilao_value,status_value,produto_value,vendedor_value,inicio_suprimento_value,fim_suprimento_value,selecao_value,url):
     
     global tabela
     
@@ -117,7 +118,7 @@ def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_dat
         else: 
             det_res_child = 'Detalhado'
             det_res_atual = 'Resumido'
-    if caminho == '/' or caminho == '/contratos':
+    if url == '/' or url == '/contratos':
         if n_unidade == None:
             mwh_mwm_child = 'MWm'
             mwh_mwm_atual = 'MWh'
@@ -264,7 +265,7 @@ def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_dat
                 flts['FIM DE SUPRIMENTO'].append(i)    
             
         
-    if caminho == '/' or caminho == '/contratos':
+    if url == '/' or url == '/contratos':
         
         titulo_pagina = 'Contratos > ' + mes_ano_atual + ' > ' + det_res_atual + ' > ' + mwh_mwm_atual
         if selecao_value == 'sub':
@@ -280,7 +281,7 @@ def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_dat
         else:
             gf.gera_grafico_cnt(contrato,valorContrato,flts,start_date,end_date,mes_ano_atual,mwh_mwm_atual,True)     
             
-    elif caminho == '/balanco':
+    elif url == '/balanco':
         mes_ano_atual = 'Anual' if trigger_id == 'ano' else 'Mensal'
         titulo_pagina = 'Balanço > ' + mes_ano_atual
         titulo_grafico = 'Total de Contratos, Carga e Sobra por Data'
@@ -290,7 +291,7 @@ def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_dat
         else:
             gf.gera_grafico_balanco(balanço,start_date,end_date,mes_ano_atual,True)
             
-    elif caminho == '/custos':
+    elif url == '/custos':
         
         titulo_pagina = 'Custos > ' + mes_ano_atual + ' > ' + det_res_atual + ' > ' + uni_tot_atual
         if selecao_value == 'sub':
@@ -311,7 +312,7 @@ def update_grafico_tabela(n_mes,n_ano,n_mes_ano, n_det_res, n_unidade, start_dat
     
     graficoLayout = dcc.Graph(id='grafico')
     
-    if caminho == '/' or caminho == '/contratos':
+    if url == '/' or url == '/contratos':
         return component_tabela,graficoLayout,displayDatePicker,displayRangeSlider,mes_ano_child,det_res_child,mwh_mwm_child,titulo_pagina,titulo_grafico
     else:
         return component_tabela,graficoLayout,displayDatePicker,displayRangeSlider,mes_ano_child,det_res_child,uni_tot_child,titulo_pagina,titulo_grafico
@@ -339,35 +340,43 @@ def toggle_ipca(n1, n2, is_open):
     return is_open
 
 
-@app.callback(Output("download-grafico", "data"), [Input("btn-exp-grafico", "n_clicks")])
-def func(n_nlicks):
-    
-    nome_arquivo = 'arquivo.xlsx'
-    if caminho == '/' or caminho == '/contratos':
-        nome_arquivo = 'grafico_contratos.xlsx'
-    if caminho == '/balanco':
-        nome_arquivo = 'grafico_balanço.xlsx'
-    if caminho == '/custos':
-        nome_arquivo = 'grafico_custos.xlsx'
-        
-    if n_nlicks != None:
-        df2 = pd.DataFrame(gf.retorna_grafico())
-        return send_data_frame(df2.to_excel, nome_arquivo, index=False)
+@app.callback(Output("download-grafico", "data"), [Input("btn-exp-grafico", "n_clicks"),Input('url1', 'pathname'),Input('grafico', 'figure')])
+def func(n_nlicks,url,fig):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id != 'btn-exp-grafico':
+        raise PreventUpdate
+    else:
+        nome_arquivo = 'arquivo.xlsx'
+        if url == '/' or url == '/contratos':
+            nome_arquivo = 'grafico_contratos.xlsx'
+        if url == '/balanco':
+            nome_arquivo = 'grafico_balanço.xlsx'
+        if url == '/custos':
+            nome_arquivo = 'grafico_custos.xlsx'
+            
+        if n_nlicks != None:
+            df2 = pd.DataFrame(gf.retorna_grafico(fig))
+            return send_data_frame(df2.to_excel, nome_arquivo, index=False)
 
-@app.callback(Output("download-tabela", "data"), [Input("btn-exp-tabela", "n_clicks")])
-def func(n_nlicks):
-    
-    nome_arquivo = 'arquivo.xlsx'
-    if caminho == '/' or caminho == '/contratos':
-        nome_arquivo = 'tabela_contratos.xlsx'
-    if caminho == '/balanco':
-        nome_arquivo = 'tabela_balanço.xlsx'
-    if caminho == '/custos':
-        nome_arquivo = 'tabela_custos.xlsx'
-    
-    df = pd.DataFrame(tabela) 
-    if n_nlicks != None:
-        return send_data_frame(df.to_excel, nome_arquivo, index=False)
+@app.callback(Output("download-tabela", "data"), [Input("btn-exp-tabela", "n_clicks"),Input('url1', 'pathname'),Input('tabela', 'data')])
+def func(n_nlicks,url,dados):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id != 'btn-exp-tabela':
+        raise PreventUpdate
+    else:
+        nome_arquivo = 'arquivo.xlsx'
+        if url == '/' or url == '/contratos':
+            nome_arquivo = 'tabela_contratos.xlsx'
+        if url == '/balanco':
+            nome_arquivo = 'tabela_balanço.xlsx'
+        if url == '/custos':
+            nome_arquivo = 'tabela_custos.xlsx'
+        
+        df = pd.DataFrame(dados) 
+        if n_nlicks != None:
+            return send_data_frame(df.to_excel, nome_arquivo, index=False)
 
 @app.callback(
     Output('date-picker', 'start_date'),
@@ -375,12 +384,13 @@ def func(n_nlicks):
     Output('range-slider', 'value'),
     [Input('date-picker', 'start_date'),
      Input('date-picker', 'end_date'),
-     Input('range-slider', 'value')]
+     Input('range-slider', 'value'),
+     Input('url1', 'pathname')]
 )
-def update_slider(start_date,end_date,slider_value):
+def update_slider(start_date,end_date,slider_value,url):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    if caminho == '/' or caminho == '/contratos' or caminho == '/balanco':
+    if url == '/' or url == '/contratos' or url == '/balanco':
         if trigger_id == 'date-picker':
             inicio = funcoes.diff_month(date.fromisoformat(start_date),date(2019,1,1))
             fim = funcoes.diff_month(date.fromisoformat(end_date),date(2019,1,1))
